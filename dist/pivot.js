@@ -925,7 +925,7 @@
                 td = document.createElement("td");
                 td.className = "pvtTotal rowTotal";
                 td.innerHTML = totalAggregator.format(totalAggregator.sum);
-                td.setAttribute("data-value", val);
+                td.setAttribute("data-value", totalAggregator.sum);
                 td.setAttribute("data-for", "row" + i);
                 tr.appendChild(td);
                 result.appendChild(tr);
@@ -934,7 +934,7 @@
                 td = document.createElement("td");
                 td.className = "pvtTotal rowTotal";
                 td.innerHTML = totalAggregator.format(totalAggregator.sum2);
-                td.setAttribute("data-value", val);
+                td.setAttribute("data-value", totalAggregator.sum2);
                 td.setAttribute("data-for", "row" + i);
                 tr.appendChild(td);
                 result.appendChild(tr);
@@ -943,7 +943,7 @@
                 td = document.createElement("td");
                 td.className = "pvtTotal rowTotal";
                 td.innerHTML = "%" +  totalAggregator.format(((totalAggregator.sum2) / (totalAggregator.sum))*100);
-                td.setAttribute("data-value", val);
+                td.setAttribute("data-value", ((totalAggregator.sum2) / (totalAggregator.sum))*100);
                 td.setAttribute("data-for", "row" + i);
                 tr.appendChild(td);
                 result.appendChild(tr);
@@ -1003,7 +1003,7 @@
             td = document.createElement("td");
             td.className = "pvtGrandTotal";
             td.innerHTML = "%" +  totalAggregator.format(((totalAggregator.sum2) / (totalAggregator.sum))*100);
-            td.setAttribute("data-value", totalAggregator.sum2);
+            td.setAttribute("data-value", ((totalAggregator.sum2) / (totalAggregator.sum))*100);
             tr.appendChild(td);
             result.appendChild(tr);
 
