@@ -20,7 +20,8 @@
     /*
     Utilities
      */
-    var PivotData, addSeparators, aggregatorTemplates, aggregators, dayNamesEn, derivers, getSort, locales, mthNamesEn, naturalSort, numberFormat, pivotTableRenderer, renderers, sortAs, usFmt, usFmtInt, usFmtPct, zeroPad;
+    var PivotData, addSeparators, aggregatorTemplates, aggregators, dayNamesEn, derivers,getSort, locales, mthNamesEn, naturalSort, numberFormat, pivotTableRenderer, renderers, sortAs, usFmt, usFmtInt, usFmtPct, zeroPad, doubleSumInit = false;
+
     addSeparators = function(nStr, thousandsSep, decimalSep) {
       var rgx, x, x1, x2;
       nStr += '';
@@ -42,7 +43,7 @@
         decimalSep: ".",
         prefix: "",
         suffix: "",
-        showZero: false
+        showZero: true
       };
       opts = $.extend(defaults, opts);
       return function(x) {
@@ -159,7 +160,37 @@
           };
         };
       },
-      min: function(formatter) {
+      doubleSum: function(formatter) {
+              if (formatter == null) {
+                formatter = usFmt;
+              }
+              return function(_arg) {
+                var attr, attr2;
+                attr = _arg[0], attr2 = _arg[1];
+                return function(data, rowKey, colKey) {
+                  return {
+                    sum: 0,
+                    sum2: 0,
+                    name: 'doubleSum',
+                    push: function(record) {
+                      if (!isNaN(parseFloat(record[attr]))) {
+                         this.sum += parseFloat(record[attr]);
+                      }
+                      if (!isNaN(parseFloat(record[attr2]))) {
+                          return this.sum2 += parseFloat(record[attr2]);
+                        }
+                    },
+                    value: function() {
+                      return [{attr},{attr2}];
+                    },
+                    format: formatter,
+                    numInputs: (attr != null) && (attr2 != null) ? 0 : 2
+                  };
+                };
+              };
+        },
+
+         min: function(formatter) {
         if (formatter == null) {
           formatter = usFmt;
         }
@@ -335,6 +366,7 @@
         "Count Unique Values": tpl.countUnique(usFmtInt),
         "List Unique Values": tpl.listUnique(", "),
         "Sum": tpl.sum(usFmt),
+        "Double Sum Percentage": tpl.doubleSum(usFmt), //Customize feature
         "Integer Sum": tpl.sum(usFmtInt),
         "Average": tpl.average(usFmt),
         "Minimum": tpl.min(usFmt),
@@ -863,15 +895,74 @@
           tr.appendChild(td);
         }
         totalAggregator = pivotData.getAggregator(rowKey, []);
-        val = totalAggregator.value();
-        td = document.createElement("td");
-        td.className = "pvtTotal rowTotal";
-        td.innerHTML = totalAggregator.format(val);
-        td.setAttribute("data-value", val);
-        td.setAttribute("data-for", "row" + i);
-        tr.appendChild(td);
-        result.appendChild(tr);
+
+
+/* DOUBLE SUM FEATURE START */
+        if(totalAggregator.name=='doubleSum' && totalAggregator.numInputs==0 )
+        {
+                //Headers (one time init)
+                if(!doubleSumInit)
+                {
+                    var attributes = totalAggregator.value()
+                    result.rows[0].cells[result.rows[0].cells.length-1].innerText = attributes[0].attr;
+
+                    th = document.createElement("th");
+                    th.className = "pvtTotalLabel";
+                    th.innerHTML = attributes[1].attr2;
+                    th.setAttribute("rowspan", colAttrs.length + (rowAttrs.length === 0 ? 0 : 1));
+                    result.rows[0].appendChild(th);
+
+                    th = document.createElement("th");
+                    th.className = "pvtTotalLabel";
+                    th.innerHTML = 'Percentage';
+                    th.setAttribute("rowspan", colAttrs.length + (rowAttrs.length === 0 ? 0 : 1));
+                    result.rows[0].appendChild(th);
+
+                    doubleSumInit = true;
+                }
+
+                // First column of sum
+                td = document.createElement("td");
+                td.className = "pvtTotal rowTotal";
+                td.innerHTML = totalAggregator.format(totalAggregator.sum);
+                td.setAttribute("data-value", val);
+                td.setAttribute("data-for", "row" + i);
+                tr.appendChild(td);
+                result.appendChild(tr);
+
+                // Second column of sum
+                td = document.createElement("td");
+                td.className = "pvtTotal rowTotal";
+                td.innerHTML = totalAggregator.format(totalAggregator.sum2);
+                td.setAttribute("data-value", val);
+                td.setAttribute("data-for", "row" + i);
+                tr.appendChild(td);
+                result.appendChild(tr);
+
+                // Average column
+                td = document.createElement("td");
+                td.className = "pvtTotal rowTotal";
+                td.innerHTML = "%" +  totalAggregator.format(((totalAggregator.sum2) / (totalAggregator.sum))*100);
+                td.setAttribute("data-value", val);
+                td.setAttribute("data-for", "row" + i);
+                tr.appendChild(td);
+                result.appendChild(tr);
+        }
+/* DOUBLE SUM FEATURE END*/
+        else
+        {
+            val = totalAggregator.value();
+            td = document.createElement("td");
+            td.className = "pvtTotal rowTotal";
+            td.innerHTML = totalAggregator.format(val);
+            td.setAttribute("data-value", val);
+            td.setAttribute("data-for", "row" + i);
+            tr.appendChild(td);
+            result.appendChild(tr);
+        }
+
       }
+      doubleSumInit = false;
       tr = document.createElement("tr");
       th = document.createElement("th");
       th.className = "pvtTotalLabel";
@@ -891,13 +982,45 @@
         tr.appendChild(td);
       }
       totalAggregator = pivotData.getAggregator([], []);
-      val = totalAggregator.value();
-      td = document.createElement("td");
-      td.className = "pvtGrandTotal";
-      td.innerHTML = totalAggregator.format(val);
-      td.setAttribute("data-value", val);
-      tr.appendChild(td);
-      result.appendChild(tr);
+
+/* DOUBLE SUM FEATURE START*/  /* Column sums and Average percentage */
+      if(totalAggregator.name=="doubleSum" && totalAggregator.numInputs==0 )
+      {
+            td = document.createElement("td");
+            td.className = "pvtGrandTotal";
+            td.innerHTML = totalAggregator.format(totalAggregator.sum);
+            td.setAttribute("data-value", totalAggregator.sum);
+            tr.appendChild(td);
+            result.appendChild(tr);
+
+            td = document.createElement("td");
+            td.className = "pvtGrandTotal";
+            td.innerHTML = totalAggregator.format(totalAggregator.sum2);
+            td.setAttribute("data-value", totalAggregator.sum2);
+            tr.appendChild(td);
+            result.appendChild(tr);
+
+            td = document.createElement("td");
+            td.className = "pvtGrandTotal";
+            td.innerHTML = "%" +  totalAggregator.format(((totalAggregator.sum2) / (totalAggregator.sum))*100);
+            td.setAttribute("data-value", totalAggregator.sum2);
+            tr.appendChild(td);
+            result.appendChild(tr);
+
+
+      }
+/* DOUBLE SUM FEATURE END*/
+    else{
+          val = totalAggregator.value();
+          td = document.createElement("td");
+          td.className = "pvtGrandTotal";
+          td.innerHTML = totalAggregator.format(val);
+          td.setAttribute("data-value", val);
+          tr.appendChild(td);
+          result.appendChild(tr);
+    }
+
+
       result.setAttribute("data-numrows", rowKeys.length);
       result.setAttribute("data-numcols", colKeys.length);
       return result;
