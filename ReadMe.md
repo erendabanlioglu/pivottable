@@ -1,5 +1,7 @@
 This is the fork that changed for our needs.
 
-It provides 2 sums of attributes and percentage of them.
+You can calculate sum of 2 different variables and percentage of them. 
 
-! Coffee script is not changed just editted dist/pivot.js
+Also there is new heatmap table marks values specific for every coulmn.
+
+!! Just dist/pivot.js updated
